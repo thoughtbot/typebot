@@ -15,11 +15,15 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Example
+  exposed-modules:     Bot
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , scotty
                      , wai
+                     , http-types
+                     , text
+                     , transformers
+                     , containers
   default-language:    Haskell2010
 
 executable typebot-exe
