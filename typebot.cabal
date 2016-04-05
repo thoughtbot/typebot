@@ -24,6 +24,10 @@ library
                      , text
                      , transformers
                      , containers
+                     , aeson
+                     , http-conduit
+                     , network-uri
+                     , html-entities
   default-language:    Haskell2010
 
 executable typebot-exe
