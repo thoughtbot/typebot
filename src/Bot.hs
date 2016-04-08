@@ -4,8 +4,8 @@ module Bot (runApp, app) where
 
 import           Control.Monad.IO.Class (liftIO)
 import           Data.Aeson (decode)
-import           Data.Maybe (catMaybes, fromJust)
-import           Data.Text (splitOn, Text(..), unpack, pack, intercalate)
+import           Data.Maybe (catMaybes)
+import           Data.Text (splitOn, Text(..), unpack, pack)
 import           Data.Text.Lazy (toStrict, fromStrict)
 import           Data.Text.Lazy.Builder (toLazyText)
 import           Data.Text.Lazy.Encoding (encodeUtf8, decodeUtf8)
@@ -14,6 +14,7 @@ import           Network.HTTP.Conduit
 import           Network.HTTP.Types.Status (Status(..))
 import           Network.URI (unEscapeString)
 import           Network.Wai (Application)
+import           System.Environment (getEnv)
 import           Types
 import qualified Data.Map as M
 import qualified Web.Scotty as S
@@ -51,11 +52,10 @@ firstType :: ResultList -> Maybe String
 firstType (ResultList (x:_)) = Just $ typeString x
 firstType _ = Nothing
 
-slackPostURL = "READ_FROM_ENV"
-
 slackRequest :: String -> IO ()
 slackRequest typeString = do
-  request <- parseUrl slackPostURL
+  slackUrl <- getEnv "TYPEBOT_SLACK_URL"
+  request <- parseUrl slackUrl
   let req = request { method = "POST", requestBody = requestBodyLbs  ["{ \"text\": \"`", typeString, "`\" }"] }
   manager <- newManager tlsManagerSettings
   httpLbs req manager
