@@ -21,6 +21,8 @@ import qualified Web.Scotty as S
 
 app' :: S.ScottyM ()
 app' = do
+  S.get "/" $ do
+    S.status $ Status 200 "OK"
   S.post "/type" $ do
     res <- parseFormEncodedBody . toStrict . decodeUtf8 <$> S.body
     case (removeCommandChars <$> lookup "text" res) of
@@ -67,4 +69,7 @@ app :: IO Application
 app = S.scottyApp app'
 
 runApp :: IO ()
-runApp = S.scotty 8080 app'
+runApp = (flip S.scotty $ app') =<< webPort
+
+webPort :: IO Int
+webPort = read <$> getEnv "PORT"
