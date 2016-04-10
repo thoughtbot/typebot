@@ -21,18 +21,41 @@ import qualified Web.Scotty as S
 
 app' :: S.ScottyM ()
 app' = do
-  S.get "/" $ do
-    S.status $ Status 200 "OK"
-  S.post "/type" $ do
-    res <- parseFormEncodedBody . toStrict . decodeUtf8 <$> S.body
-    case (removeCommandChars <$> lookup "text" res) of
-      Just x -> do
-        hoogleRes <- liftIO . simpleHttp . functionNameToUrl $ x
-        maybe badRequest (liftIO . slackRequest) (firstType =<< decode hoogleRes)
-      Nothing -> badRequest
+  S.get "/" $ S.status $ Status 200 "OK"
+  S.post "/type" $ authorized $ requireParameter "text" typeRequest
+
+authorized :: S.ActionM () -> S.ActionM ()
+authorized f = do
+  token <- lookupParameter "token"
+  authorized <- liftIO $ withAuthorization token
+  case authorized of
+    True -> f
+    False -> unauthorized
+
+requireParameter :: Text -> (Text -> S.ActionM ()) -> S.ActionM ()
+requireParameter t f = do
+  p <- lookupParameter t
+  maybe badRequest f p
+
+lookupParameter :: Text -> S.ActionM (Maybe Text)
+lookupParameter t = do
+  params <- parseFormEncodedBody . toStrict . decodeUtf8 <$> S.body
+  return $ lookup t params
+
+typeRequest :: Text -> S.ActionM ()
+typeRequest t = do
+  hoogleRes <- liftIO . simpleHttp . functionNameToUrl $ removeCommandChars t
+  maybe badRequest (liftIO . slackRequest) (firstType =<< decode hoogleRes)
+
+withAuthorization :: Maybe Text -> IO Bool
+withAuthorization (Just x) = getEnv "TYPEBOT_SLACK_TOKEN" >>= return . (== x) . pack
+withAuthorization _ = return False
 
 badRequest :: S.ActionM ()
-badRequest = S.status $ Status 403 "Malformed"
+badRequest = S.status $ Status 400 "Bad Request"
+
+unauthorized :: S.ActionM ()
+unauthorized = S.status $ Status 401 "Unauthorized"
 
 parseFormEncodedBody :: Text -> [(Text, Text)]
 parseFormEncodedBody s = catMaybes $ fmap arrayToTuple $ fmap (splitOn "=") $ splitOn "&" s
