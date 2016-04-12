@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, QuasiQuotes #-}
 
-module Bot (runApp) where
+module Bot (runApp, app) where
 
 import           Control.Monad.IO.Class (liftIO)
 import           Data.Aeson (decode)
@@ -54,3 +54,6 @@ requestBodyLbs xs = RequestBodyLBS . encodeUtf8 . fromStrict . pack . mconcat $ 
 
 runApp :: IO ()
 runApp = (flip S.scotty $ app') =<< webPort
+
+app :: IO Application
+app = S.scottyApp app'
