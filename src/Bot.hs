@@ -2,7 +2,8 @@
 
 module Bot (runApp) where
 
-import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.IO.Class (MonadIO, liftIO)
+import           Control.Monad ((<=<))
 import           Data.Aeson (decode)
 import           Data.Text (Text(..), unpack, pack)
 import           Data.Text.Lazy (toStrict, fromStrict)
@@ -24,9 +25,7 @@ app' = do
   S.post "/type" $ authorized $ requireParameter "text" typeRequest
 
 typeRequest :: Text -> S.ActionM ()
-typeRequest func = do
-  hoogleRes <- liftIO . simpleHttp . functionNameToUrl $ removeCommandChars func
-  maybe badRequest (liftIO . slackRequest) (firstType =<< decode hoogleRes)
+typeRequest = maybe badRequest slackRequest <=< hoogle
 
 removeCommandChars :: Text -> Text
 removeCommandChars t = toHtmlEncodedText . snd . splitAt 5 $ unpack t
@@ -37,12 +36,17 @@ toHtmlEncodedText = toText . htmlEncodedText . pack . unEscapeString
 functionNameToUrl :: Text -> String
 functionNameToUrl x = unpack $ mconcat ["https://www.haskell.org/hoogle/?mode=json&hoogle=", x,"&start=1&count=1"]
 
-firstType :: ResultList -> Maybe String
-firstType (ResultList (x:_)) = Just $ typeString x
+firstType :: ResultList -> Maybe SearchResult
+firstType (ResultList (x:_)) = Just x
 firstType _ = Nothing
 
-slackRequest :: String -> IO ()
-slackRequest typeString = do
+hoogle :: (MonadIO m) => Text -> m (Maybe SearchResult)
+hoogle f = liftIO $ do
+  response <- simpleHttp . functionNameToUrl $ removeCommandChars f
+  return $ firstType =<< decode response
+
+slackRequest :: (MonadIO m) => SearchResult -> m ()
+slackRequest (SearchResult typeString) = liftIO $ do
   slackUrl <- getEnv "TYPEBOT_SLACK_URL"
   request <- parseUrl slackUrl
   let req = request { method = "POST", requestBody = requestBodyLbs  ["{ \"text\": \"`", typeString, "`\" }"] }
