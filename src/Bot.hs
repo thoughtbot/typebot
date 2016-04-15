@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Bot (runApp) where
 
@@ -46,15 +46,32 @@ hoogle f = liftIO $ do
   return $ firstType =<< decode response
 
 slackRequest :: (MonadIO m) => SearchResult -> m ()
-slackRequest (SearchResult typeString) = liftIO $ do
+slackRequest s = liftIO $ do
   slackUrl <- getEnv "TYPEBOT_SLACK_URL"
   request <- parseUrl slackUrl
-  let req = request { method = "POST", requestBody = requestBodyLbs  ["{ \"text\": \"`", typeString, "`\" }"] }
+  let req = request { method = "POST", requestBody = requestBodyLbs $ jsonPayload s }
   manager <- newManager tlsManagerSettings
   httpLbs req manager
   return ()
 
-requestBodyLbs xs = RequestBodyLBS . encodeUtf8 . fromStrict . pack . mconcat $ xs
+jsonPayload :: SearchResult -> [String]
+jsonPayload s = typePayload s ++ hoogleURL s ++ ["\" }"]
+
+typePayload :: SearchResult -> [String]
+typePayload (SearchResult typeString _) =
+  [ "{ \"text\":"
+  , "\"`"
+  , typeString
+  , "`"
+  , "\n"
+  ]
+
+hoogleURL :: SearchResult -> [String]
+hoogleURL (SearchResult _ locationURL)
+  | not (null locationURL) = ["Hackage docs: ", locationURL]
+  | otherwise = []
+
+requestBodyLbs = RequestBodyLBS . encodeUtf8 . fromStrict . pack . mconcat
 
 runApp :: IO ()
-runApp = (flip S.scotty $ app') =<< webPort
+runApp = (`S.scotty` app') =<< webPort

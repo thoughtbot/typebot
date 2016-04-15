@@ -4,10 +4,10 @@ module Types where
 
 import           Data.Aeson (FromJSON(parseJSON), Value(..), object, (.=), (.:))
 
-data SearchResult = SearchResult { typeString :: String } deriving (Show)
+data SearchResult = SearchResult { typeString :: String, locationURL :: String } deriving (Show)
 
 instance FromJSON SearchResult where
-  parseJSON (Object v) = SearchResult <$> v .: "self"
+  parseJSON (Object v) = SearchResult <$> v .: "self" <*> v .: "location"
 
 newtype ResultList = ResultList [SearchResult] deriving (Show)
 
