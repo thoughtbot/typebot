@@ -28,6 +28,7 @@ library
                      , http-conduit
                      , network-uri
                      , html-entities
+                     , HTTP
   default-language:    Haskell2010
 
 executable typebot-exe

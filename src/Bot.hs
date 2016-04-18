@@ -10,6 +10,7 @@ import           Data.Text.Lazy (toStrict, fromStrict)
 import           Data.Text.Lazy.Builder (toLazyText)
 import           Data.Text.Lazy.Encoding (encodeUtf8)
 import           HTMLEntities.Decoder (htmlEncodedText)
+import           Network.HTTP.Base (urlEncode)
 import           Network.HTTP.Conduit
 import           Network.HTTP.Types.Status (Status(..))
 import           Network.URI (unEscapeString)
@@ -28,7 +29,7 @@ typeRequest :: Text -> S.ActionM ()
 typeRequest = maybe badRequest slackRequest <=< hoogle
 
 removeCommandChars :: Text -> Text
-removeCommandChars t = toHtmlEncodedText . snd . splitAt 5 $ unpack t
+removeCommandChars t = toHtmlEncodedText . urlEncode . snd . splitAt 5 $ unpack t
 
 toText = toStrict . toLazyText
 toHtmlEncodedText = toText . htmlEncodedText . pack . unEscapeString
