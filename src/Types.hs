@@ -17,6 +17,10 @@ instance FromJSON SearchResult where
 
 newtype ResultList = ResultList [SearchResult] deriving (Show)
 
+firstResult :: ResultList -> Maybe SearchResult
+firstResult (ResultList (x:_)) = Just x
+firstResult _ = Nothing
+
 instance FromJSON ResultList where
   parseJSON (Object v) = ResultList <$> v .: "results"
 

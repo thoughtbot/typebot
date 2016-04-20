@@ -1,19 +1,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Utils (authorized, requireParameter, lookupParameter, badRequest, webPort) where
+module Utils (authorized, requireParameter, lookupParameter, badRequest, opts) where
 
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Reader (ask, lift)
 import           Data.Configurator.Types
+import           Data.Default.Class (def)
 import           Data.Maybe (catMaybes, isJust)
 import           Data.Text (splitOn, Text(..), pack)
 import           Data.Text.Lazy.Encoding (decodeUtf8)
 import           Network.HTTP.Types.Status (Status(..))
+import           Network.Wai.Handler.Warp (setPort)
 import           System.Environment (getEnv)
 import           Types
-import           Web.Scotty.Trans (status, body)
+import           Web.Scotty.Trans (Options, settings, status, body)
 import qualified Data.Configurator as C
 import qualified Data.Text.Lazy as L
+
+opts :: IO Options
+opts = do
+  port <- webPort
+  return def { settings = setPort port $ settings def }
 
 authorized :: TypeBot () -> TypeBot ()
 authorized action = do

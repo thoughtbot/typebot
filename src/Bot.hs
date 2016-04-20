@@ -8,23 +8,29 @@ import           Control.Monad.Reader (MonadReader, ReaderT, ask, lift, runReade
 import           Data.Aeson (decode)
 import           Data.Configurator as C
 import           Data.Configurator.Types (Config)
-import           Data.Default.Class (def)
-import           Data.Text (Text(..), unpack, pack)
+import           Data.Text (Text(..), unpack, pack, replace, splitOn, splitAt)
 import           Data.Text.Lazy.Builder (toLazyText)
 import           Data.Text.Lazy.Encoding (encodeUtf8)
 import           HTMLEntities.Decoder (htmlEncodedText)
-import           Network.HTTP.Base (urlEncode)
 import           Network.HTTP.Conduit
 import           Network.HTTP.Types.Status (Status(..))
 import           Network.URI (unEscapeString)
 import           Network.Wai (Application)
-import           Network.Wai.Handler.Warp (setPort)
 import           System.Environment (getEnv)
 import           Types
 import           Utils
-import           Web.Scotty.Trans (ScottyT, Options, get, post, scottyOptsT, status, settings)
+import           Web.Scotty.Trans (ScottyT, get, post, scottyOptsT, status)
 import qualified Data.Text.Lazy as L
+import qualified Network.HTTP.Base as U
 import qualified Web.Scotty as S
+
+runApp :: IO ()
+runApp = do
+  c <- C.load [Required "app.cfg"]
+  o <- opts
+  scottyOptsT o (runIO c) app' where
+    runIO :: Config -> ConfigM a -> IO a
+    runIO c m = runReaderT (runConfigM m) c
 
 app' :: ScottyT L.Text ConfigM ()
 app' = do
@@ -34,23 +40,13 @@ app' = do
 typeRequest :: Text -> TypeBot ()
 typeRequest = maybe badRequest slackRequest <=< hoogle
 
-removeCommandChars :: Text -> Text
-removeCommandChars t = toHtmlEncodedText . urlEncode . snd . splitAt 5 $ unpack t
-
-toText = L.toStrict . toLazyText
-toHtmlEncodedText = toText . htmlEncodedText . pack . unEscapeString
-
 functionNameToUrl :: Text -> String
 functionNameToUrl x = unpack $ mconcat ["https://www.haskell.org/hoogle/?mode=json&hoogle=", x,"&start=1&count=1"]
-
-firstType :: ResultList -> Maybe SearchResult
-firstType (ResultList (x:_)) = Just x
-firstType _ = Nothing
 
 hoogle :: (MonadIO m) => Text -> m (Maybe SearchResult)
 hoogle f = liftIO $ do
   response <- simpleHttp . functionNameToUrl $ removeCommandChars f
-  return $ firstType =<< decode response
+  return $ firstResult =<< decode response
 
 slackRequest :: SearchResult -> TypeBot ()
 slackRequest s = do
@@ -80,17 +76,16 @@ hoogleURL (SearchResult _ locationURL)
   | not (null locationURL) = ["Hackage docs: ", locationURL]
   | otherwise = []
 
+removeCommandChars :: Text -> Text
+removeCommandChars = urlEncode . toHtmlEncodedText . replacePlus . snd . Data.Text.splitAt 5
+
 requestBodyLbs = RequestBodyLBS . encodeUtf8 . L.fromStrict . pack . mconcat
 
-opts :: IO Options
-opts = do
-  port <- webPort
-  return def { settings = setPort port $ settings def }
+toText = L.toStrict . toLazyText
 
-runApp :: IO ()
-runApp = do
-  c <- C.load [Required "app.cfg"]
-  o <- opts
-  scottyOptsT o (runIO c) app' where
-    runIO :: Config -> ConfigM a -> IO a
-    runIO c m = runReaderT (runConfigM m) c
+toHtmlEncodedText = toText . htmlEncodedText . pack . unEscapeString
+
+replacePlus = unpack . replace "+" "%20"
+
+urlEncode = pack . U.urlEncode . unpack
+
