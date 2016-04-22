@@ -2,7 +2,7 @@
 
 A slack bot that will fetch type signatures via Hoogle:
 
-<img src="http://i.imgur.com/TJzSA93.png" width="400">
+<img src="http://i.imgur.com/k10Aqrb.png" width="800">
 
 ## Configuration
 

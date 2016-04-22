@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Utils (authorized, requireParameter, lookupParameter, badRequest, opts) where
+module Utils (authorized, requireParameter, lookupParameter, opts) where
 
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Reader (ask, lift)

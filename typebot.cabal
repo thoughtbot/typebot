@@ -33,6 +33,7 @@ library
                      , configurator
                      , data-default-class
                      , warp
+                     , shakespeare
   default-language:    Haskell2010
 
 executable typebot-exe
