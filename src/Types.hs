@@ -5,8 +5,8 @@ module Types where
 
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Control.Monad.Reader (MonadIO, MonadReader, ReaderT)
+import           Data.Aeson (FromJSON(parseJSON), Value(..), object, (.=), (.:), (.:?))
 import           Data.Configurator.Types
-import           Data.Aeson (FromJSON(parseJSON), Value(..), object, (.=), (.:))
 import           Web.Scotty.Trans (ActionT)
 import qualified Data.Text.Lazy as L
 
@@ -17,13 +17,20 @@ instance FromJSON SearchResult where
 
 newtype ResultList = ResultList [SearchResult] deriving (Show)
 
+data SearchEngine = Hoogle deriving (Show)
+
 firstResult :: ResultList -> Maybe SearchResult
-firstResult (ResultList (x:_)) = Just x
-firstResult _ = Nothing
+firstResult (ResultList xs) = safeHead xs
+
+safeHead :: [a] -> Maybe a
+safeHead (x:_) = Just x
+safeHead _ = Nothing
 
 instance FromJSON ResultList where
   parseJSON (Object v) = ResultList <$> v .: "results"
 
-newtype ConfigM a = ConfigM { runConfigM :: ReaderT Config IO a } deriving (Applicative, Functor, Monad, MonadIO, MonadReader Config)
+data AppConfig = AppConfig Config SearchEngine
+
+newtype ConfigM a = ConfigM { runConfigM :: ReaderT AppConfig IO a } deriving (Applicative, Functor, Monad, MonadIO, MonadReader AppConfig)
 
 type TypeBot a = ActionT L.Text ConfigM a

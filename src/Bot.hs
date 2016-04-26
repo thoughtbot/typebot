@@ -17,10 +17,10 @@ import           Network.HTTP.Types.Status (Status(..))
 import           Network.URI (unEscapeString)
 import           Network.Wai (Application)
 import           System.Environment (getEnv)
+import           Text.Shakespeare.Text
 import           Types
 import           Utils
 import           Web.Scotty.Trans (ScottyT, get, post, scottyOptsT, status)
-import           Text.Shakespeare.Text
 import qualified Data.Text.Lazy as L
 import qualified Network.HTTP.Base as U
 import qualified Web.Scotty as S
@@ -28,10 +28,14 @@ import qualified Web.Scotty as S
 runApp :: IO ()
 runApp = do
   c <- C.load [Required "app.cfg"]
+  s <- engine <$> C.lookup c "engine"
   o <- opts
-  scottyOptsT o (runIO c) app' where
-    runIO :: Config -> ConfigM a -> IO a
-    runIO c m = runReaderT (runConfigM m) c
+  scottyOptsT o (runIO c s) app' where
+    runIO :: Config -> SearchEngine -> ConfigM a -> IO a
+    runIO c s m = runReaderT (runConfigM m) $ AppConfig c s
+
+engine :: Maybe Text -> SearchEngine
+engine _ = Hoogle
 
 app' :: ScottyT L.Text ConfigM ()
 app' = do
@@ -40,8 +44,12 @@ app' = do
 
 typeRequest :: Text -> TypeBot ()
 typeRequest f = do
-  result <- hoogle f
+  (AppConfig _ s) <- lift ask
+  result <- search s $ f
   maybe (noResultsSlack f) slackRequest result
+
+search :: (MonadIO m) => SearchEngine -> (Text -> m (Maybe SearchResult))
+search Hoogle = hoogle
 
 functionNameToUrl :: Text -> String
 functionNameToUrl x = unpack $ mconcat [baseUrl, "?mode=json&hoogle=", x,"&start=1&count=1"]
@@ -68,7 +76,7 @@ slackRequest = slack . typePayload
 
 slack :: Text -> TypeBot ()
 slack s = do
-  cfg <- lift ask
+  (AppConfig cfg _) <- lift ask
   (Just rToken) <- lookupParameter "token"
   liftIO $ do
     slackUrl <- C.require cfg rToken

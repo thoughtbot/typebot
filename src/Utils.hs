@@ -24,14 +24,14 @@ opts = do
 
 authorized :: TypeBot () -> TypeBot ()
 authorized action = do
-  cfg <- lift ask
+  (AppConfig cfg s) <- lift ask
   rToken <- lookupParameter "token"
   match <- tokenMatches rToken
   if match then action else unauthorized
 
 tokenMatches :: Maybe Text -> TypeBot Bool
 tokenMatches (Just t) = do
-  cfg <- lift ask
+  (AppConfig cfg s) <- lift ask
   cToken <- liftIO (C.lookup cfg t :: IO (Maybe Text))
   return $ isJust cToken
 tokenMatches' Nothing = return False
