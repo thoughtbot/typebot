@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Bot, Types, Utils
+  exposed-modules:     Bot, Types, Utils, Providers.Hoogle, Providers.Hayoo
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , scotty

@@ -12,26 +12,6 @@ import           Data.Maybe (listToMaybe)
 import           Web.Scotty.Trans (ActionT)
 import qualified Data.Text.Lazy as L
 
-data HayooResult = HayooResult
-  { fname :: String
-  , ftype :: Maybe String
-  , flocation :: String
-  } deriving (Show)
-
-instance FromJSON HayooResult where
-  parseJSON = withObject "" parseHayooResult
-
-parseHayooResult :: Object -> Parser HayooResult
-parseHayooResult v = HayooResult <$> v .: "resultName" <*> v .:? "resultSignature" <*> v .: "resultUri"
-
-newtype HayooResults = HayooResults [HayooResult] deriving (Show)
-
-instance FromJSON HayooResults where
-  parseJSON = withObject "" parseHayooResults
-
-parseHayooResults :: Object -> Parser HayooResults
-parseHayooResults v = HayooResults <$> v .: "result"
-
 data SearchResult = SearchResult { typeString :: String, locationURL :: String } deriving (Show)
 
 instance FromJSON SearchResult where
@@ -46,9 +26,6 @@ data SearchEngine = Hayoo | Hoogle deriving (Show)
 
 firstResult :: ResultList -> Maybe SearchResult
 firstResult (ResultList xs) = listToMaybe xs
-
-firstHayooResult :: HayooResults -> Maybe HayooResult
-firstHayooResult (HayooResults xs) = listToMaybe xs
 
 instance FromJSON ResultList where
   parseJSON = withObject "" parseResultList

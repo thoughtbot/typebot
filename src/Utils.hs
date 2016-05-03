@@ -1,20 +1,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Utils (authorized, requireParameter, lookupParameter, opts) where
+module Utils (removeCommandChars, authorized, requireParameter, lookupParameter, opts) where
 
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Reader (ask, lift)
 import           Data.Default.Class (def)
 import           Data.Maybe (catMaybes, isJust)
-import           Data.Text (splitOn, Text)
+import           Data.Text (splitOn, splitAt, unpack, pack, replace, Text)
+import           Data.Text.Internal.Builder(Builder)
+import           Data.Text.Lazy.Builder (toLazyText)
 import           Data.Text.Lazy.Encoding (decodeUtf8)
+import           HTMLEntities.Decoder (htmlEncodedText)
 import           Network.HTTP.Types.Status (Status(..))
+import           Network.URI (unEscapeString)
 import           Network.Wai.Handler.Warp (setPort)
 import           System.Environment (getEnv)
 import           Types
 import           Web.Scotty.Trans (Options, settings, status, body)
 import qualified Data.Configurator as C
 import qualified Data.Text.Lazy as L
+import qualified Network.HTTP.Base as U
 
 opts :: IO Options
 opts = do
@@ -59,3 +64,18 @@ arrayToTuple _ = Nothing
 
 webPort :: IO Int
 webPort = read <$> getEnv "PORT"
+
+removeCommandChars :: Text -> Text
+removeCommandChars = urlEncode . toHtmlEncodedText . replacePlus . snd . Data.Text.splitAt 5
+
+toText :: Builder -> Text
+toText = L.toStrict . toLazyText
+
+toHtmlEncodedText :: String -> Text
+toHtmlEncodedText = Utils.toText . htmlEncodedText . pack . unEscapeString
+
+replacePlus :: Text -> String
+replacePlus = unpack . replace "+" "%20"
+
+urlEncode :: Text -> Text
+urlEncode = pack . U.urlEncode . unpack
