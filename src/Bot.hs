@@ -54,10 +54,15 @@ humanFriendlyUrl Hoogle x = unpack $ [st|http://hayoo.fh-wedel.de/?query=#{x}|]
 noResultsSlack :: Text -> TypeBot ()
 noResultsSlack t = do
   s <- lift $ asks appSearchEngine
-  slack $ notFoundPayload s t
+  case (removeCommandChars t) of
+    Just t' -> slack $ notFoundPayload s t'
+    Nothing -> slack $ parseError
 
 notFoundPayload :: SearchEngine -> Text -> Text
-notFoundPayload s t = [st|{ "text": "I couldn't find a matching result, here's where I looked: #{humanFriendlyUrl s $ removeCommandChars t}" }|]
+notFoundPayload s t = [st|{ "text": "I couldn't find a matching result, here's where I looked: #{humanFriendlyUrl s t}" }|]
+
+parseError :: Text
+parseError = [st|{ "text": "I couldn't parse the your request..." }|]
 
 slackRequest :: SearchResult -> TypeBot ()
 slackRequest = slack . typePayload

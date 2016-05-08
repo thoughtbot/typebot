@@ -5,7 +5,7 @@ module Utils (removeCommandChars, authorized, requireParameter, lookupParameter,
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Reader (ask, lift)
 import           Data.Default.Class (def)
-import           Data.Maybe (catMaybes, isJust)
+import           Data.Maybe (catMaybes, isJust, listToMaybe)
 import           Data.Text (splitOn, splitAt, unpack, pack, replace, Text)
 import           Data.Text.Internal.Builder(Builder)
 import           Data.Text.Lazy.Builder (toLazyText)
@@ -20,6 +20,7 @@ import           Web.Scotty.Trans (Options, settings, status, body)
 import qualified Data.Configurator as C
 import qualified Data.Text.Lazy as L
 import qualified Network.HTTP.Base as U
+import qualified Text.ParserCombinators.ReadP as P
 
 opts :: IO Options
 opts = do
@@ -65,8 +66,11 @@ arrayToTuple _ = Nothing
 webPort :: IO Int
 webPort = read <$> getEnv "PORT"
 
-removeCommandChars :: Text -> Text
-removeCommandChars = urlEncode . toHtmlEncodedText . replacePlus . snd . Data.Text.splitAt 5
+removeCommandChars :: Text -> Maybe Text
+removeCommandChars t = urlEncode . toHtmlEncodedText . replacePlus <$> (parsedCommand' t)
+  where
+    parsedCommand' t = pack . snd <$> parsedCommand t
+    parsedCommand t = listToMaybe $ (P.readP_to_S $ P.string "%3At+") $ unpack t
 
 toText :: Builder -> Text
 toText = L.toStrict . toLazyText

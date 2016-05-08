@@ -40,8 +40,8 @@ hayooUrl x = unpack $ [st|http://hayoo.fh-wedel.de/json?query=#{x}|]
 
 hayoo :: (MonadIO m) => Text -> m (Maybe SearchResult)
 hayoo f = liftIO $ do
-  response <- simpleHttp . hayooUrl $ removeCommandChars f
-  return $ translateHayoo <$> (firstHayooResult =<< decode response)
+  response <- sequence $ simpleHttp . hayooUrl <$> removeCommandChars f
+  return $ translateHayoo <$> (firstHayooResult =<< decode =<< response)
 
 translateHayoo :: HayooResult -> SearchResult
 translateHayoo (HayooResult fn (Just ft) fl) = SearchResult (fn ++ " :: " ++ ft) fl

@@ -39,8 +39,8 @@ hoogleUrl x = unpack $ [st|https://www.haskell.org/hoogle/?mode=json&hoogle=#{x}
 
 hoogle :: (MonadIO m) => Text -> m (Maybe SearchResult)
 hoogle f = liftIO $ do
-  response <- simpleHttp . hoogleUrl $ removeCommandChars f
-  return $ translateHoogle <$> (firstHoogleResult =<< decode response)
+  response <- sequence $ simpleHttp . hoogleUrl <$> removeCommandChars f
+  return $ translateHoogle <$> (firstHoogleResult =<< decode =<< response)
 
 translateHoogle :: HoogleResult -> SearchResult
 translateHoogle (HoogleResult ht hlurl) = SearchResult ht hlurl
