@@ -48,15 +48,15 @@ search Hoogle = hoogle
 search Hayoo = hayoo
 
 humanFriendlyUrl :: SearchEngine -> Text -> String
-humanFriendlyUrl Hayoo x = unpack $ [st|https://www.haskell.org/hoogle/?hoogle=#{x}&start=1&count=1|]
-humanFriendlyUrl Hoogle x = unpack $ [st|http://hayoo.fh-wedel.de/?query=#{x}|]
+humanFriendlyUrl Hoogle x = unpack $ [st|https://www.haskell.org/hoogle/?hoogle=#{x}&start=1&count=1|]
+humanFriendlyUrl Hayoo x = unpack $ [st|http://hayoo.fh-wedel.de/?query=#{x}|]
 
 noResultsSlack :: Text -> TypeBot ()
 noResultsSlack t = do
   s <- lift $ asks appSearchEngine
   case removeCommandChars t of
     Just t' -> slack $ notFoundPayload s t'
-    Nothing -> slack parseError
+    Nothing -> return ()
 
 notFoundPayload :: SearchEngine -> Text -> Text
 notFoundPayload s t = [st|{ "text": "I couldn't find a matching result, here's where I looked: #{humanFriendlyUrl s t}" }|]
