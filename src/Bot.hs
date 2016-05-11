@@ -40,7 +40,7 @@ app' = do
 typeRequest :: Text -> TypeBot ()
 typeRequest f = do
   s <- lift $ asks appSearchEngine
-  result <- search s $ f
+  result <- search s f
   maybe (noResultsSlack f) slackRequest result
 
 search :: (MonadIO m) => SearchEngine -> (Text -> m (Maybe SearchResult))
@@ -54,9 +54,9 @@ humanFriendlyUrl Hoogle x = unpack $ [st|http://hayoo.fh-wedel.de/?query=#{x}|]
 noResultsSlack :: Text -> TypeBot ()
 noResultsSlack t = do
   s <- lift $ asks appSearchEngine
-  case (removeCommandChars t) of
+  case removeCommandChars t of
     Just t' -> slack $ notFoundPayload s t'
-    Nothing -> slack $ parseError
+    Nothing -> slack parseError
 
 notFoundPayload :: SearchEngine -> Text -> Text
 notFoundPayload s t = [st|{ "text": "I couldn't find a matching result, here's where I looked: #{humanFriendlyUrl s t}" }|]
